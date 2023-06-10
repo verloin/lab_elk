@@ -5,6 +5,7 @@
 
 .vagrant/*
 keys/*
+ansible_keys/*
 # User-specific files
 *.rsuser
 *.suo
