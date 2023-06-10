@@ -1,0 +1,10 @@
+---
+- name: docker-compose up
+  hosts: localhost
+  become: True
+
+  tasks:
+
+    - name: start
+      shell:
+        cmd: "docker-compose -f /home/vagrant/kdocker/docker-compose.yml up -d"  

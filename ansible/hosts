@@ -1,0 +1,2 @@
+[nodes]
+ubuntu-2004 ansible_host=10.0.0.101
