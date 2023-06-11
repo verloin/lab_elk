@@ -1,0 +1,110 @@
+---
+
+- name: CA exists
+  stat:
+    path: "{{ kibana_certs_dir }}/{{ elasticsearch_ca_name }}"
+  register: elastic_ca_file
+
+- name: add elk group 
+  ansible.builtin.group:
+    name: "{{ kibana_group }}"
+    state: present
+
+- name: add elk user
+  ansible.builtin.user:
+    name: "{{ kibana_user }}"
+    shell: /bin/sh
+    password: "*"
+    group: "{{ kibana_group }}"
+
+- name: is kibana installed
+  stat:
+    path: "{{ kibana_conf_dir }}"
+  register: kibana_dir
+
+- block:
+    - name: Install Kibana | install
+      apt:
+        name: kibana
+        state: present
+        update_cache: yes
+
+    - name: Install Kibana | Enable Kibana service
+      systemd:
+        name: kibana
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Install Kibana | Starting Kibana service
+      systemd:
+        name: kibana
+        state: started
+
+    - name: Install Kibana | Create folders for configurations
+      file:
+        path: "{{ kibana_conf_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ kibana_user }}"
+        group: "{{ kibana_group }}"
+      loop:
+        - certs
+        - data
+
+  when:
+    - not kibana_dir.stat.exists
+
+- name: Fix directory permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ kibana_user }}"
+    group: "{{ kibana_group }}"
+    recurse: yes
+    mode: u=rwX,g=rX,o-rwx
+  loop:
+    - "{{ kibana_conf_dir }}"
+    - "{{ kibana_certs_dir}}"
+    - "{{ kibana_pid_dir}}"
+    - "{{ kibana_data_dir }}"
+    - "{{ kibana_log_dir }}"
+
+- name: Render kibana service file
+  ansible.builtin.template:
+    src: kibana.service.j2
+    dest: /etc/systemd/system/kibana.service
+    owner: "{{ kibana_user }}"
+    group: "{{ kibana_group }}"
+    mode: 0644
+  notify:
+    - reload systemd
+
+- name: Copy elastic CA
+  ansible.builtin.copy:
+    src: "{{ elasticsearch_local_certs_dir }}/{{ elasticsearch_ca_name }}"
+    dest: "{{ kibana_certs_dir }}/{{ elasticsearch_ca_name }}"
+    owner: "{{ kibana_user }}"
+    group: "{{ kibana_group }}"
+    mode: 0644
+  when: 
+    - elasticsearch_https_enabled
+    - not elastic_ca_file.stat.exists
+    
+- set_fact:
+    elastic_virtual_proto: "{{ 'https' if elasticsearch_https_enabled else 'http' }}"
+
+- name: Render kibana configuration file
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: "{{ kibana_conf_dir }}/kibana.yml"
+    owner: "{{ kibana_user }}"
+    group: "{{ kibana_group }}"
+    mode: 0644
+
+- name: Render node.options file
+  ansible.builtin.template:
+    src: node.options.j2
+    dest: "{{ kibana_conf_dir }}/node.options"
+    owner: "{{ kibana_user }}"
+    group: "{{ kibana_group }}"
+    mode: 0644
+    

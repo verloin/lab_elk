@@ -6,17 +6,22 @@
     - import_role:
         name: elasticsearch
 
-# - hosts: kibana 
-#   become: yes
-#   remote_user: root
-#   tasks:
-#     - import_role:
-#         name: kibana
+#
+## Test or install Kibana
+#
+- hosts: kibana 
+  become: yes
+  remote_user: root
+  tasks:
+    - import_role:
+        name: kibana
 
-# - hosts: logstash 
-#   become: yes
-#   remote_user: root
-#   tasks:
-#     - import_role:
-#         name: logstash
-
+#
+## Test or install Logstash
+#
+- hosts: logstash 
+  become: yes
+  remote_user: root
+  tasks:
+    - import_role:
+        name: logstash

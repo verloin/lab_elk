@@ -1,0 +1,154 @@
+---
+
+- name: Install Logstash | CA exists
+  stat:
+    path: "{{ logstash_certs_dir }}/{{ elasticsearch_ca_name }}"
+  register: elastic_ca_file
+
+- name: Install Logstash | add elk group 
+  ansible.builtin.group:
+    name: "{{ logstash_group }}"
+    state: present
+
+- name: Install Logstash | add elk user
+  ansible.builtin.user:
+    name: "{{ logstash_user }}"
+    shell: /bin/sh
+    password: "*"
+    group: "{{ logstash_group }}"
+
+- name: Install Logstash | is logstash installed
+  stat:
+    path: "{{ logstash_conf_dir }}"
+  register: logstash_dir
+
+- block:
+    - name: Install Logstash | install logstash from repo
+      apt:
+        name: logstash
+        state: present
+        update_cache: yes
+
+    - name: Install Logstash | Enable logstash service
+      systemd:
+        name: logstash
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Install Logstash | Starting logstash service
+      systemd:
+        name: logstash
+        state: started
+
+    - name: Install Logstash | Create folders for configurations
+      file:
+        path: "{{ logstash_conf_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ logstash_user }}"
+        group: "{{ logstash_group }}"
+      loop:
+        - certs
+        - data
+
+  when:
+    - not logstash_dir.stat.exists
+
+- name: Install Logstash | Fix directory permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    recurse: yes
+    mode: u=rwX,g=rX,o-rwx
+  loop:
+    - "{{ logstash_conf_dir }}"
+    - "{{ logstash_log_dir }}"
+    - "{{ logstash_pid_dir }}"
+    - "{{ logstash_data_dir }}"
+    - "{{ logstash_certs_dir }}"
+
+- name: Install Logstash | Copy logstash env file
+  ansible.builtin.template:
+    src: logstash_env.j2
+    dest: "{{ logstash_env_file[ansible_os_family] }}"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+
+- name: Install Logstash | Copy logstash service file
+  ansible.builtin.template:
+    src: logstash.service.j2
+    dest: /etc/systemd/system/logstash.service
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+  notify:
+    - reload systemd
+
+- name: Install Logstash | Transfer elastic CA from ansible_host to remote_host
+  synchronize:
+    src: "{{ elasticsearch_local_certs_dir }}/{{ elasticsearch_ca_name }}"
+    dest: "/tmp/{{ elasticsearch_ca_name }}"
+  when: 
+    - elasticsearch_https_enabled
+    - not elastic_ca_file.stat.exists
+
+- name: Install Logstash | Copy elastic CA from /tmp to ../certs
+  ansible.builtin.copy:
+    src: "/tmp/{{ elasticsearch_ca_name }}"
+    dest: "{{ logstash_certs_dir }}/{{ elasticsearch_ca_name }}"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    remote_src: yes
+    mode: 0644
+  when: 
+    - not elastic_ca_file.stat.exists
+
+- set_fact:
+    elastic_virtual_proto: "{{ 'https' if elasticsearch_https_enabled else 'http' }}"
+
+- name: Install Logstash | Copy logstash yml configuration file
+  ansible.builtin.template:
+    src: logstash.yml.j2
+    dest: "{{ logstash_conf_dir }}/logstash.yml"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+
+- name: Install Logstash | Copy logstash configuration file
+  ansible.builtin.template:
+    src: logstash.conf.j2
+    dest: "{{ logstash_conf_dir }}/logstash.conf"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+
+- name: Install Logstash | Copy logstash JVM configuration file
+  ansible.builtin.template:
+    src: jvm.options.j2
+    dest: "{{ logstash_conf_dir }}/jvm.options"
+    owner: "{{logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+
+- name: Install Logstash | Copy logstash log4j configuration file
+  ansible.builtin.copy:
+    src: log4j2.properties
+    dest: "{{ logstash_conf_dir }}/log4j2.properties"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+
+- name: Install Logstash | Copy logstash pipelines configuration file
+  ansible.builtin.copy:
+    src: pipelines.yml
+    dest: "{{ logstash_conf_dir }}/pipelines.yml"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0644
+
+- name: Install Logstash | Restarted logstash service
+  ansible.builtin.service:
+    name: logstash
+    state: restarted

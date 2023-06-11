@@ -1,0 +1,28 @@
+---
+- hosts: logstash 
+  become: yes
+  remote_user: root
+  vars:
+    package_names:
+      - logstash
+
+  tasks:
+    - name: Get stats of installed Prometheus
+      ansible.builtin.stat:
+        path: /etc/prometheus/prometheus.yml
+      register: sys
+    
+    - name: LOGSTASH is installed
+      debug:
+        msg: LOGSTASH is installed
+      when: sys.stat.exists
+
+    - name: logstash is NOT installed
+      debug:
+        msg: LOGSTASH is installed
+      when: not sys.stat.exists
+
+    - block:
+        - import_role:
+            name: prometheus
+      when: not sys.stat.exists

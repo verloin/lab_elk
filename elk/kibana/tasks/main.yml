@@ -1,21 +1,21 @@
 ---
-#
-# Installing Kibana
-#
 
-- name: INSTALL KIBANA AND UPDATE REPOSITORIES CACHE
-  apt:
-    name: kibana
+- name: Main | Install elastic deb repository
+  apt_repository:
+    repo: "deb [trusted=yes] https://mirror.yandex.ru/mirrors/elastic/7/ stable main"
     state: present
+  become: true
+
+- name: Main | Update apt repo and cache
+  apt:
     update_cache: yes
 
-- name: ENABLING KIBANA SERVICE
-  systemd:
-    name: kibana
-    enabled: yes
-    daemon_reload: yes
-
-- name: STARTING KIBANA SERVICE
-  systemd:
-    name: kibana
-    state: started
+- name: Main | Upgrade all packages
+  apt:
+    upgrade: dist
+  
+- include_tasks: 
+    file: install_kibana.yml
+    apply:
+      tags: elkinstall,kibana
+  tags: elkinstall,kibana

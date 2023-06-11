@@ -66,14 +66,6 @@
     recurse: yes
     mode: u=rwX,g=rwX,o-rwx
 
-# - name: Install elasticsearch | change permissions on directory "./default"
-#   ansible.builtin.file:
-#     path: /etc/default/elasticsearch
-#     state: file
-#     owner: "{{ elasticsearch_user }}"
-#     group: root
-#     mode: u=rw,g=rw,o=rw
-
 - include_tasks: 
     file: generate_ca.yml
   when: 

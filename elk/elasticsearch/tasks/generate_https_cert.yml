@@ -18,30 +18,30 @@
     dest: "/usr/local/sbin/generate_https_certs.sh"
     mode: 0700
 
-- name: Generate HTTP | Remove HTTPS zip file (cleanup)
-  ansible.builtin.file:
-    path: "{{ elasticsearch_http_file }}"
-    state: absent
+# - name: Generate HTTP | Remove HTTPS zip file (cleanup)
+#   ansible.builtin.file:
+#     path: "{{ elasticsearch_http_file }}"
+#     state: absent
 
-- name: Generate HTTP | Remove HTTPS temp dir (cleanup)
-  ansible.builtin.file:
-    path: /tmp/elasticsearch
-    state: absent
+# - name: Generate HTTP | Remove HTTPS temp dir (cleanup)
+#   ansible.builtin.file:
+#     path: /tmp/elasticsearch
+#     state: absent
 
-- name: Generate HTTP | Remove HTTPS temp dir (cleanup)
-  ansible.builtin.file:
-    path: /tmp/kibana
-    state: absent
+# - name: Generate HTTP | Remove HTTPS temp dir (cleanup)
+#   ansible.builtin.file:
+#     path: /tmp/kibana
+#     state: absent
 
 - name: Generate HTTP | generate HTTPS cert
   ansible.builtin.command: > 
     /usr/local/sbin/generate_https_certs.sh
   when: not https_file.stat.exists
 
-- name: Generate HTTP | Remove answer file
-  ansible.builtin.file:
-    path: /tmp/https_answer_file.txt
-    state: absent
+# - name: Generate HTTP | Remove answer file
+#   ansible.builtin.file:
+#     path: /tmp/https_answer_file.txt
+#     state: absent
 
 - name: Generate HTTP | Unarchive HTTPS zip file
   ansible.builtin.unarchive:
@@ -66,17 +66,17 @@
   run_once: true
   when: not https_file.stat.exists
 
-- name: Generate HTTP | Remove HTTPS zip file
-  ansible.builtin.file:
-    path: "{{ elasticsearch_http_file }}"
-    state: absent
+# - name: Generate HTTP | Remove HTTPS zip file
+#   ansible.builtin.file:
+#     path: "{{ elasticsearch_http_file }}"
+#     state: absent
 
-- name: Generate HTTP | Remove HTTPS temp dir
-  ansible.builtin.file:
-    path: /tmp/elasticsearch
-    state: absent
+# - name: Generate HTTP | Remove HTTPS temp dir
+#   ansible.builtin.file:
+#     path: /tmp/elasticsearch
+#     state: absent
 
-- name: Generate HTTP | Remove HTTPS temp dir
-  ansible.builtin.file:
-    path: /tmp/kibana
-    state: absent
+# - name: Generate HTTP | Remove HTTPS temp dir
+#   ansible.builtin.file:
+#     path: /tmp/kibana
+#     state: absent

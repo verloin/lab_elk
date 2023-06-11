@@ -1,21 +1,20 @@
 ---
-#
-# Installing Logstash
-#
-
-- name: INSTALL LOGSTASH
-  apt:
-    name: logstash
+- name: Main Logstash | Install elastic deb repository
+  apt_repository:
+    repo: "deb [trusted=yes] https://mirror.yandex.ru/mirrors/elastic/7/ stable main"
     state: present
+  become: true
+
+- name: Main Logstash | Update apt repo and cache
+  apt:
     update_cache: yes
 
-- name: ENABLING LOGSTASH SERVICE
-  systemd:
-    name: logstash
-    enabled: yes
-    daemon_reload: yes
-
-- name: STARTING LOGSTASH SERVICE
-  systemd:
-    name: logstash
-    state: started
+- name: Main Logstash | Upgrade all packages
+  apt:
+    upgrade: dist
+  
+- include_tasks: 
+    file: install_logstash.yml
+    apply:
+      tags: elkinstall,logstash
+  tags: elkinstall,logstash
