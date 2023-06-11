@@ -1,0 +1,138 @@
+---
+#
+## Installing Elasticsearch
+#
+
+- name: Install elasticsearch | Add elk group 
+  ansible.builtin.group:
+    name: "{{ elasticsearch_group }}"
+    state: present
+
+- name: Install elasticsearch | Add elk user
+  ansible.builtin.user:
+    name: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    shell: /bin/sh
+    password: "*"
+
+- name: Install elasticsearch | install
+  apt:
+    name: elasticsearch
+    state: present
+    update_cache: yes
+
+- name: Install elasticsearch | Enable elastic service
+  systemd:
+    name: elasticsearch
+    enabled: yes
+    daemon_reload: yes
+
+- name: Install elasticsearch | Starting elastic service
+  systemd:
+    name: elasticsearch
+    state: started
+
+- name: Install elasticsearch | Create folders for configurations
+  file:
+    path: "{{ elasticsearch_conf_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+  loop:
+    - certs
+    - data
+
+- name: Install elasticsearch | Fix directory permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ elasticsearch_user }}"
+    group: root
+    recurse: yes
+    mode: u=rwX,g=rwX,o-rwx
+  loop:
+    - "{{ elasticsearch_data_dir }}"
+    - "{{ elasticsearch_log_dir }}"
+    - "{{ elasticsearch_pid_dir }}"
+    - "{{ elasticsearch_conf_dir }}"
+    - "{{ elasticsearch_certs_dir}}"
+
+- name: Install elasticsearch | change permissions on directory "./bin"
+  ansible.builtin.file:
+    path: /usr/share/elasticsearch/
+    state: directory
+    owner: "{{ elasticsearch_user }}"
+    group: root
+    recurse: yes
+    mode: u=rwX,g=rwX,o-rwx
+
+# - name: Install elasticsearch | change permissions on directory "./default"
+#   ansible.builtin.file:
+#     path: /etc/default/elasticsearch
+#     state: file
+#     owner: "{{ elasticsearch_user }}"
+#     group: root
+#     mode: u=rw,g=rw,o=rw
+
+- include_tasks: 
+    file: generate_ca.yml
+  when: 
+    - generateca is defined
+    - elasticsearch_security_enabled
+    - inventory_hostname in groups['elasticsearch_ca']
+
+- include_tasks: 
+    file: generate_node_cert.yml
+  when: 
+    - elasticsearch_security_enabled
+    - generateca is defined
+
+- include_tasks: 
+    file: generate_https_cert.yml
+  when: elasticsearch_https_enabled
+
+- include_tasks: 
+    file: keystore_setup.yml
+  when: elasticsearch_security_enabled
+
+- name: Install elasticsearch | Set vm.max_map_count value
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Install elasticsearch | Copy "elasticsearch_env"
+  template:
+    src: elasticsearch_env.j2
+    dest: "{{ elasticsearch_env_file }}"
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    mode: 0664
+
+- name: Install elasticsearch | Copy "elasticsearch.service"
+  ansible.builtin.template:
+    src: elasticsearch.service.j2
+    dest: /etc/systemd/system/elasticsearch.service
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    mode: 0664
+  notify:
+    - reload systemd
+
+- name: Install elasticsearch | Copy "elasticsearch.yml"
+  ansible.builtin.template:
+    src: elasticsearch.yml.j2
+    dest: "{{ elasticsearch_conf_dir }}/elasticsearch.yml"
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    mode: 0664
+
+- name: Install elasticsearch | Copy JVM configuration file
+  ansible.builtin.template:
+    src: jvm.options.j2
+    dest: "{{ elasticsearch_conf_dir }}/jvm.options"
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+    mode: 0664

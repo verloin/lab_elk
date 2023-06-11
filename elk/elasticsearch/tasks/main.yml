@@ -1,0 +1,48 @@
+---
+
+- name: Main | Install dependences
+  apt:
+    name:
+      - apt-transport-https
+      - software-properties-common
+      - openssl
+      - gnupg
+      - gpg
+      - wget
+      - curl
+      - python3
+      - python3-pip
+      - python-netaddr
+    state: present
+    update_cache: yes
+
+- name: Main | Install dependensies with pip
+  pip:
+    name:
+      - netaddr
+      - ipaddr
+
+- name: Main | Install elastic deb repository
+  apt_repository:
+    repo: "deb [trusted=yes] https://mirror.yandex.ru/mirrors/elastic/7/ stable main"
+    state: present
+  become: true
+
+- name: Main | Update apt repo and cache
+  apt:
+    update_cache: yes
+
+- name: Main | Upgrade all packages
+  apt:
+    upgrade: dist
+
+- set_fact:
+    virtual_proto: "{{ 'https' if elasticsearch_https_enabled else 'http' }}"
+
+- set_fact:
+    elastic_ip_address: "{{ item }}"
+  when: "item | ipaddr( elasticsearch_subnet )"
+  with_items: "{{ ansible_all_ipv4_addresses }}"
+
+- include_tasks:
+    file: install_elasticsearch.yml

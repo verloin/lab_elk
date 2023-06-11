@@ -1,0 +1,21 @@
+---
+#
+# Installing Logstash
+#
+
+- name: INSTALL LOGSTASH
+  apt:
+    name: logstash
+    state: present
+    update_cache: yes
+
+- name: ENABLING LOGSTASH SERVICE
+  systemd:
+    name: logstash
+    enabled: yes
+    daemon_reload: yes
+
+- name: STARTING LOGSTASH SERVICE
+  systemd:
+    name: logstash
+    state: started

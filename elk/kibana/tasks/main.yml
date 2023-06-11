@@ -1,0 +1,21 @@
+---
+#
+# Installing Kibana
+#
+
+- name: INSTALL KIBANA AND UPDATE REPOSITORIES CACHE
+  apt:
+    name: kibana
+    state: present
+    update_cache: yes
+
+- name: ENABLING KIBANA SERVICE
+  systemd:
+    name: kibana
+    enabled: yes
+    daemon_reload: yes
+
+- name: STARTING KIBANA SERVICE
+  systemd:
+    name: kibana
+    state: started

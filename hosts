@@ -1,0 +1,43 @@
+[nodes]
+node01 ansible_host=10.0.0.201
+node02 ansible_host=10.0.0.202
+node03 ansible_host=10.0.0.203
+
+[servers]
+logstash ansible_host=10.0.0.100
+elastic-01 ansible_host=10.0.0.101
+elastic-02 ansible_host=10.0.0.102
+elastic-03 ansible_host=10.0.0.103
+kibana ansible_host=10.0.0.104
+filebeat ansible_host=10.0.0.105
+prometheus ansible_host=10.0.0.109
+grafana ansible_host=10.0.0.109
+
+[elasticsearch]
+elastic-01 
+elastic-02
+elastic-03
+
+[elasticsearch_ca]
+elastic-01
+
+[elasticsearch_master]
+elastic-01
+elastic-02
+elastic-03
+
+[elasticsearch_data]
+elastic-01
+elastic-02
+elastic-03
+
+[kibana]
+kibana
+
+[logstash]
+logstash
+
+
+# [nodes:vars]
+# ansible_ssh_user=root
+# ansible_ssh_private_key_file=/home/vagrant/ansible/privat_ansible

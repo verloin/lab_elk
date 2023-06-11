@@ -6,6 +6,8 @@
 .vagrant/*
 keys/*
 ansible_keys/*
+very_secure_dir/*
+
 # User-specific files
 *.rsuser
 *.suo
